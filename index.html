@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kvízová hra – chemické prvky</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #eff6ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .container {
+    width: 92%;
+    max-width: 760px;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.18);
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 34px;
+    margin: 0 0 10px 0;
+    color: #1d4ed8;
+  }
+
+  #liveScore {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #1e40af;
+  }
+
+  .answers {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .answer {
+    flex: 1 1 calc(50% - 10px);
+    padding: 15px;
+    background: #dbeafe;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 18px;
+    box-sizing: border-box;
+    color: #1e3a8a;
+  }
+
+  .answer:hover {
+    background: #93c5fd;
+  }
+
+  .correct {
+    background: #2563eb !important;
+    color: white;
+  }
+
+  .wrong {
+    background: #f44336 !important;
+    color: white;
+  }
+
+  button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #1d4ed8;
+  }
+
+  button:disabled {
+    background: #93c5fd;
+    cursor: not-allowed;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  ul {
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .ok {
+    color: #1d4ed8;
+  }
+
+  .bad {
+    color: #c62828;
+  }
+
+  .status-box {
+    text-align: center;
+  }
+
+  .status-box p {
+    font-size: 18px;
+  }
+
+  @media (max-width: 600px) {
+    .answer {
+      flex: 1 1 100%;
+    }
+
+    h1 {
+      font-size: 28px;
+    }
+  }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <div id="status" class="status-box">
+    <h1>Načítám hru…</h1>
+    <p>Kontroluji soubor <strong>stav.txt</strong>.</p>
+  </div>
+
+  <div id="game" class="hidden">
+    <h1 id="question"></h1>
+    <p id="liveScore"></p>
+    <div class="answers" id="answers"></div>
+    <button id="nextBtn" disabled>Další</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <h1>Výsledek</h1>
+    <p id="score"></p>
+    <ul id="details"></ul>
+  </div>
+
+</div>
+
+<script>
+const elements = [
+  { name:"Vodík", symbol:"H",  period:1 },
+  { name:"Helium", symbol:"He", period:1 },
+
+  { name:"Lithium", symbol:"Li", period:2 },
+  { name:"Beryllium", symbol:"Be", period:2 },
+  { name:"Bor", symbol:"B", period:2 },
+  { name:"Uhlík", symbol:"C", period:2 },
+  { name:"Dusík", symbol:"N", period:2 },
+  { name:"Kyslík", symbol:"O", period:2 },
+  { name:"Fluor", symbol:"F", period:2 },
+  { name:"Neon", symbol:"Ne", period:2 },
+
+  { name:"Sodík", symbol:"Na", period:3 },
+  { name:"Hořčík", symbol:"Mg", period:3 },
+  { name:"Hliník", symbol:"Al", period:3 },
+  { name:"Křemík", symbol:"Si", period:3 },
+  { name:"Fosfor", symbol:"P", period:3 },
+  { name:"Síra", symbol:"S", period:3 },
+  { name:"Chlor", symbol:"Cl", period:3 },
+  { name:"Argon", symbol:"Ar", period:3 },
+
+  { name:"Draslík", symbol:"K", period:4 },
+  { name:"Vápník", symbol:"Ca", period:4 },
+  { name:"Titan", symbol:"Ti", period:4 },
+  { name:"Vanad", symbol:"V", period:4 },
+  { name:"Chrom", symbol:"Cr", period:4 },
+  { name:"Mangan", symbol:"Mn", period:4 },
+  { name:"Železo", symbol:"Fe", period:4 },
+  { name:"Kobalt", symbol:"Co", period:4 },
+  { name:"Nikl", symbol:"Ni", period:4 },
+  { name:"Měď", symbol:"Cu", period:4 },
+  { name:"Zinek", symbol:"Zn", period:4 },
+  { name:"Gallium", symbol:"Ga", period:4 },
+  { name:"Germanium", symbol:"Ge", period:4 },
+  { name:"Arsen", symbol:"As", period:4 },
+  { name:"Selen", symbol:"Se", period:4 },
+  { name:"Brom", symbol:"Br", period:4 },
+  { name:"Krypton", symbol:"Kr", period:4 },
+
+  { name:"Rubidium", symbol:"Rb", period:5 },
+  { name:"Stroncium", symbol:"Sr", period:5 },
+  { name:"Molybden", symbol:"Mo", period:5 },
+  { name:"Stříbro", symbol:"Ag", period:5 },
+  { name:"Indium", symbol:"In", period:5 },
+  { name:"Cín", symbol:"Sn", period:5 },
+  { name:"Antimon", symbol:"Sb", period:5 },
+  { name:"Tellur", symbol:"Te", period:5 },
+  { name:"Jod", symbol:"I", period:5 },
+  { name:"Xenon", symbol:"Xe", period:5 },
+
+  { name:"Cesium", symbol:"Cs", period:6 },
+  { name:"Baryum", symbol:"Ba", period:6 },
+  { name:"Wolfram", symbol:"W", period:6 },
+  { name:"Osmium", symbol:"Os", period:6 },
+  { name:"Platina", symbol:"Pt", period:6 },
+  { name:"Zlato", symbol:"Au", period:6 },
+  { name:"Rtuť", symbol:"Hg", period:6 },
+  { name:"Thallium", symbol:"Tl", period:6 },
+  { name:"Olovo", symbol:"Pb", period:6 },
+  { name:"Bismut", symbol:"Bi", period:6 },
+  { name:"Polonium", symbol:"Po", period:6 },
+  { name:"Astat", symbol:"At", period:6 },
+  { name:"Radon", symbol:"Rn", period:6 },
+
+  { name:"Francium", symbol:"Fr", period:7 },
+  { name:"Radium", symbol:"Ra", period:7 }
+];
+
+const confusingRealSymbols = {
+  "Vodík": ["He", "Hg", "Ho"],
+  "Helium": ["H", "Hg", "He"],
+  "Lithium": ["Be", "In", "Bi"],
+  "Beryllium": ["B", "Bi", "Be"],
+  "Bor": ["Br", "Bi", "Ba"],
+  "Uhlík": ["Ca", "Cl", "Co"],
+  "Dusík": ["Na", "Ni", "Ne"],
+  "Kyslík": ["Os", "Au", "S"],
+  "Fluor": ["Fe", "Fr", "Cl"],
+  "Neon": ["N", "Ni", "Ne"],
+  "Sodík": ["N", "Ni", "Mg"],
+  "Hořčík": ["Mn", "Hg", "Mo"],
+  "Hliník": ["Ag", "Ar", "Ga"],
+  "Křemík": ["S", "Sn", "Se"],
+  "Fosfor": ["Po", "Pb", "Fe"],
+  "Síra": ["Si", "Se", "Sr"],
+  "Chlor": ["C", "Cr", "Co"],
+  "Argon": ["Ag", "As", "Ar"],
+  "Draslík": ["Kr", "Ca", "Cl"],
+  "Vápník": ["C", "Co", "Cs"],
+  "Titan": ["Tl", "Te", "Ti"],
+  "Vanad": ["W", "Zn", "V"],
+  "Chrom": ["Cl", "Co", "Cr"],
+  "Mangan": ["Mg", "Mo", "Mn"],
+  "Železo": ["F", "Fr", "Fe"],
+  "Kobalt": ["Cu", "Ca", "Co"],
+  "Nikl": ["N", "Ne", "Ni"],
+  "Měď": ["Co", "Ca", "Cu"],
+  "Zinek": ["Xe", "Zr", "Zn"],
+  "Gallium": ["Ge", "Ag", "Ga"],
+  "Germanium": ["Ga", "Ag", "Ge"],
+  "Arsen": ["Ag", "At", "As"],
+  "Selen": ["S", "Si", "Se"],
+  "Brom": ["B", "Bi", "Br"],
+  "Krypton": ["K", "Rb", "Kr"],
+  "Rubidium": ["Rn", "Br", "Rb"],
+  "Stroncium": ["Sn", "Se", "Sr"],
+  "Molybden": ["Mn", "Mg", "Mo"],
+  "Stříbro": ["Au", "Al", "Ag"],
+  "Indium": ["I", "Bi", "In"],
+  "Cín": ["Si", "Sb", "Sn"],
+  "Antimon": ["As", "At", "Sb"],
+  "Tellur": ["Tl", "Ti", "Te"],
+  "Jod": ["In", "Bi", "I"],
+  "Xenon": ["Ne", "Kr", "Xe"],
+  "Cesium": ["Ce", "Ca", "Cs"],
+  "Baryum": ["Be", "Bi", "Ba"],
+  "Wolfram": ["V", "Mo", "W"],
+  "Osmium": ["O", "Au", "Os"],
+  "Platina": ["Pb", "Po", "Pt"],
+  "Zlato": ["Ag", "Al", "Au"],
+  "Rtuť": ["Mg", "Ag", "Hg"],
+  "Thallium": ["Ti", "Te", "Tl"],
+  "Olovo": ["Po", "P", "Pb"],
+  "Bismut": ["B", "Br", "Bi"],
+  "Polonium": ["P", "Pb", "Po"],
+  "Astat": ["As", "Ar", "At"],
+  "Radon": ["Ra", "Rb", "Rn"],
+  "Francium": ["F", "Fe", "Fr"],
+  "Radium": ["Rn", "Rb", "Ra"]
+};
+
+let questions = [];
+let currentIndex = 0;
+let correctAnswers = 0;
+let answered = false;
+let results = [];
+
+const statusEl = document.getElementById("status");
+const questionEl = document.getElementById("question");
+const answersEl = document.getElementById("answers");
+const nextBtn = document.getElementById("nextBtn");
+const resultEl = document.getElementById("result");
+const gameEl = document.getElementById("game");
+const scoreEl = document.getElementById("score");
+const detailsEl = document.getElementById("details");
+const liveScoreEl = document.getElementById("liveScore");
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+function pick(array, count) {
+  return shuffle(array).slice(0, count);
+}
+
+function removeDiacritics(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function unique(array) {
+  return [...new Set(array)];
+}
+
+function symbolShape(symbol) {
+  return {
+    len: symbol.length,
+    first: symbol[0],
+    second: symbol[1] || ""
+  };
+}
+
+function similarSymbols(correctSymbol) {
+  const shape = symbolShape(correctSymbol);
+
+  return elements
+    .map(e => e.symbol)
+    .filter(s => s !== correctSymbol)
+    .filter(s => {
+      const sh = symbolShape(s);
+      return (
+        sh.len === shape.len ||
+        sh.first === shape.first ||
+        (shape.second && sh.second === shape.second)
+      );
+    });
+}
+
+function buildFakeSymbolsFromName(name, correctSymbol, alreadyUsed = []) {
+  const clean = removeDiacritics(name).replace(/[^A-Za-z]/g, "");
+  const out = [];
+
+  if (clean.length >= 1) out.push(clean[0].toUpperCase());
+  if (clean.length >= 2) out.push(clean[0].toUpperCase() + clean[1].toLowerCase());
+  if (clean.length >= 3) out.push(clean[0].toUpperCase() + clean[2].toLowerCase());
+  if (clean.length >= 4) out.push(clean[1].toUpperCase() + clean[2].toLowerCase());
+  if (clean.length >= 2) out.push(clean[1].toUpperCase());
+
+  return unique(out).filter(s =>
+    s &&
+    s.length <= 2 &&
+    s !== correctSymbol &&
+    !alreadyUsed.includes(s)
+  );
+}
+
+function getHardSymbolOptions(element) {
+  const correct = element.symbol;
+
+  const realPool = unique([
+    ...(confusingRealSymbols[element.name] || []),
+    ...similarSymbols(correct),
+    ...elements
+      .filter(e => e.period === element.period && e.symbol !== correct)
+      .map(e => e.symbol)
+  ]).filter(s => s !== correct);
+
+  const fakePool = buildFakeSymbolsFromName(element.name, correct, realPool);
+
+  const wrongs = [];
+
+  for (const symbol of realPool) {
+    if (wrongs.length >= 2) break;
+    if (!wrongs.includes(symbol)) wrongs.push(symbol);
+  }
+
+  for (const fake of fakePool) {
+    if (wrongs.length >= 3) break;
+    if (!wrongs.includes(fake)) wrongs.push(fake);
+  }
+
+  if (wrongs.length < 3) {
+    const fallbackReal = shuffle(
+      elements
+        .map(e => e.symbol)
+        .filter(s => s !== correct && !wrongs.includes(s))
+    );
+
+    for (const s of fallbackReal) {
+      if (wrongs.length >= 3) break;
+      wrongs.push(s);
+    }
+  }
+
+  return shuffle([correct, ...wrongs.slice(0, 3)]);
+}
+
+function getHardNameOptions(element) {
+  const correct = lowerFirst(element.name);
+
+  const samePeriod = elements
+    .filter(e => e.period === element.period && e.name !== element.name)
+    .map(e => lowerFirst(e.name));
+
+  const similarLength = elements
+    .filter(e => e.name !== element.name)
+    .map(e => lowerFirst(e.name))
+    .filter(n => Math.abs(n.length - correct.length) <= 2);
+
+  const sameFirstLetter = elements
+    .filter(e => e.name !== element.name)
+    .map(e => lowerFirst(e.name))
+    .filter(n => n[0] === correct[0]);
+
+  let wrongPool = unique([
+    ...samePeriod,
+    ...sameFirstLetter,
+    ...similarLength
+  ]).filter(n => n !== correct);
+
+  if (wrongPool.length < 3) {
+    const fallback = elements
+      .filter(e => e.name !== element.name)
+      .map(e => lowerFirst(e.name))
+      .filter(n => !wrongPool.includes(n));
+
+    wrongPool = [...wrongPool, ...shuffle(fallback)];
+  }
+
+  return shuffle([correct, ...wrongPool.slice(0, 3)]);
+}
+
+function createNameToSymbolQuestion(element) {
+  const texts = getHardSymbolOptions(element);
+  return {
+    text: element.name,
+    texts,
+    correct: texts.indexOf(element.symbol),
+    type: "nameToSymbol"
+  };
+}
+
+function createSymbolToNameQuestion(element) {
+  const correct = lowerFirst(element.name);
+  const texts = getHardNameOptions(element);
+
+  return {
+    text: element.symbol,
+    texts,
+    correct: texts.indexOf(correct),
+    type: "symbolToName"
+  };
+}
+
+function updateScore() {
+  liveScoreEl.textContent = `${correctAnswers} / ${questions.length}`;
+}
+
+function startGame() {
+  statusEl.classList.add("hidden");
+
+  const selectedForSymbols = pick(elements, 10);
+  const remaining = elements.filter(e => !selectedForSymbols.includes(e));
+  const selectedForNames = pick(remaining, 10);
+
+  const symbolQuestions = selectedForSymbols.map(createNameToSymbolQuestion);
+  const nameQuestions = selectedForNames.map(createSymbolToNameQuestion);
+
+  questions = shuffle([...symbolQuestions, ...nameQuestions]);
+
+  currentIndex = 0;
+  correctAnswers = 0;
+  answered = false;
+  results = [];
+
+  resultEl.classList.add("hidden");
+  gameEl.classList.remove("hidden");
+
+  updateScore();
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  nextBtn.disabled = true;
+  answersEl.innerHTML = "";
+
+  updateScore();
+
+  const q = questions[currentIndex];
+  questionEl.textContent = q.text;
+
+  q.texts.forEach((text, i) => {
+    const div = document.createElement("div");
+    div.classList.add("answer");
+    div.textContent = text;
+    div.onclick = () => selectAnswer(div, i);
+    answersEl.appendChild(div);
+  });
+}
+
+function selectAnswer(element, index) {
+  if (answered) return;
+  answered = true;
+
+  const q = questions[currentIndex];
+  const all = document.querySelectorAll(".answer");
+
+  all.forEach((el, i) => {
+    if (i === q.correct) el.classList.add("correct");
+  });
+
+  const isCorrect = index === q.correct;
+
+  if (isCorrect) {
+    correctAnswers++;
+  } else {
+    element.classList.add("wrong");
+  }
+
+  updateScore();
+
+  results.push({
+    question: q.text,
+    chosen: q.texts[index],
+    correct: q.texts[q.correct],
+    isCorrect
+  });
+
+  nextBtn.disabled = false;
+}
+
+nextBtn.onclick = () => {
+  currentIndex++;
+  if (currentIndex >= questions.length) {
+    showResult();
+  } else {
+    loadQuestion();
+  }
+};
+
+function showResult() {
+  gameEl.classList.add("hidden");
+  resultEl.classList.remove("hidden");
+
+  scoreEl.textContent = `Správně: ${correctAnswers} / ${questions.length}`;
+  detailsEl.innerHTML = "";
+
+  results.forEach(r => {
+    const li = document.createElement("li");
+    li.className = r.isCorrect ? "ok" : "bad";
+    li.innerHTML = r.isCorrect
+      ? `✔ ${r.question}: ${r.chosen}`
+      : `✖ ${r.question}: ${r.chosen} (správně: ${r.correct})`;
+    detailsEl.appendChild(li);
+  });
+}
+
+function showStatus(title, message) {
+  gameEl.classList.add("hidden");
+  resultEl.classList.add("hidden");
+  statusEl.classList.remove("hidden");
+
+  statusEl.innerHTML = `
+    <h1>${title}</h1>
+    <p>${message}</p>
+  `;
+}
+
+async function checkGameState() {
+  try {
+    const response = await fetch(`stav.txt?nocache=${Date.now()}`);
+
+    if (!response.ok) {
+      showStatus(
+        "Hru nelze spustit",
+        "Nepodařilo se načíst soubor <strong>stav.txt</strong>."
+      );
+      return;
+    }
+
+    const state = (await response.text()).trim().toUpperCase();
+
+    if (state === "ZAPNUTO") {
+      startGame();
+      return;
+    }
+
+    if (state === "VYPNUTO") {
+      showStatus(
+        "Hra je vypnutá",
+        "Správce hry ji může zapnout změnou souboru <strong>stav.txt</strong> na <strong>ZAPNUTO</strong>."
+      );
+      return;
+    }
+
+    showStatus(
+      "Neplatný stav hry",
+      "Soubor <strong>stav.txt</strong> musí obsahovat pouze <strong>ZAPNUTO</strong> nebo <strong>VYPNUTO</strong>."
+    );
+  } catch (error) {
+    showStatus(
+      "Hru nelze spustit",
+      "Soubor <strong>stav.txt</strong> se nepodařilo načíst."
+    );
+  }
+}
+
+checkGameState();
+</script>
+</body>
+</html>
